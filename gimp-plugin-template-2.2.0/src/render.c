@@ -46,6 +46,60 @@ render (gint32              image_ID,
 	PlugInImageVals    *image_vals,
 	PlugInDrawableVals *drawable_vals)
 {
+  
+  /* substitute pixel vales */
+  gimp_pixel_rgn_init (
+    &image_ID, drawable,
+    0, 0,
+    vals->SourceWidth,
+    vals->SourceHeight,
+    FALSE,
+    FALSE
+  );
+  gimp_pixel_rgn_init (
+    &dest_rgn, drawable,
+    0, 0,
+    vals->DestinationWidth,
+    vals->DestinationHeight,
+    TRUE,
+    TRUE
+  );
+  
+  for (pr = gimp_pixel_rgns_register(2, &src_rgn, &dest_rgn);
+       pr != NULL;
+       pr = gimp_pixel_rgns_process(pr))
+       {
+	 src  = src_rgn.data;
+	 dest = dest_rgn.data;
+	 
+	 for (y = 0; y < src_rgn.h; y++)
+	 {
+	   s = src;
+	   d = dest;
+	   
+	   for (x = 0; x < src_rgn.w; x++)
+	   {
+	     d[0] = (src_rgn.x + x + src_rgn.y + y) % 256;
+	     d[1] = s[1];
+	     d[2] = (- src_rgn.x - x + src_rgn.y + y) % 256;
+	     if (has_alpha)
+	       d[alpha] = s[alpha];
+	     
+	     s += src_rgn.bpp;
+	     d += dest_rgn.bpp;
+	   }
+	   
+	   src += src_rgn.rowstride;
+	   dest += dest_rgn.rowstride;
+	 }
+	 
+	 /* Update progress */
+	 progress += src_rgn.w * src_rgn.h;
+	 
+	 gimp_progress_update ((double) progress / (double) max_progress);
+       }
+       
+
   g_message (_("This plug-in is just a dummy. "
                "It has now finished doing nothing."));
 }
